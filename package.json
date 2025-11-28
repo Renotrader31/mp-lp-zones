@@ -1,0 +1,14 @@
+{
+  "name": "mp-lp-zones",
+  "version": "1.0.0",
+  "description": "Magnet Price & Liquidity Pull Zone Analysis Tool",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "vercel dev"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

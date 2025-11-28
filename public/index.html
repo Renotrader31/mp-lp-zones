@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP/LP Zones - Magnet Price & Liquidity Pull</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --bg-card: #15151f;
+            --border-color: #2a2a3a;
+            --text-primary: #e8e8ec;
+            --text-secondary: #8888a0;
+            --text-muted: #555570;
+            --accent-cyan: #00d4ff;
+            --accent-magenta: #ff00aa;
+            --accent-green: #00ff88;
+            --accent-red: #ff4466;
+            --accent-yellow: #ffcc00;
+            --accent-purple: #8844ff;
+            --glow-cyan: rgba(0, 212, 255, 0.3);
+            --glow-magenta: rgba(255, 0, 170, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta), var(--accent-cyan));
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px var(--glow-cyan);
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-group label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .input-group input, .input-group select {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px var(--glow-cyan);
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            border: none;
+            border-radius: 10px;
+            padding: 12px 28px;
+            color: white;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 16px;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--glow-cyan);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.loading { background: var(--accent-yellow); }
+        .status-dot.error { background: var(--accent-red); animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title span { font-size: 20px; }
+
+        .price-ladder {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .ladder-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 100px 80px;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .ladder-row:hover { background: var(--bg-tertiary); }
+
+        .ladder-row.magnet-zone {
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.15), transparent);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .ladder-row.liquidity-zone {
+            background: linear-gradient(90deg, rgba(255, 0, 170, 0.15), transparent);
+            border-left: 3px solid var(--accent-magenta);
+        }
+
+        .ladder-row.current-price {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.2), transparent);
+            border: 1px solid var(--accent-green);
+        }
+
+        .strike-price { font-weight: 600; }
+
+        .oi-bar-container {
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .oi-bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 10px;
+            color: white;
+            transition: width 0.5s ease;
+        }
+
+        .oi-bar.calls { background: linear-gradient(90deg, transparent, var(--accent-green)); }
+        .oi-bar.puts { background: linear-gradient(90deg, var(--accent-red), transparent); }
+
+        .gamma-value { text-align: right; }
+        .gamma-value.positive { color: var(--accent-green); }
+        .gamma-value.negative { color: var(--accent-red); }
+
+        .zone-tag {
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .zone-tag.mp { background: var(--accent-cyan); color: var(--bg-primary); }
+        .zone-tag.lp { background: var(--accent-magenta); color: white; }
+
+        .summary-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .key-levels {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .level-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            border-left: 4px solid transparent;
+        }
+
+        .level-item.primary-mp {
+            border-left-color: var(--accent-cyan);
+            box-shadow: inset 0 0 20px var(--glow-cyan);
+        }
+
+        .level-item.primary-lp {
+            border-left-color: var(--accent-magenta);
+            box-shadow: inset 0 0 20px var(--glow-magenta);
+        }
+
+        .level-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .level-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .level-value.cyan { color: var(--accent-cyan); }
+        .level-value.magenta { color: var(--accent-magenta); }
+        .level-value.green { color: var(--accent-green); }
+        .level-value.red { color: var(--accent-red); }
+
+        .level-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .metric-box {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .interpretation {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .interpretation h4 {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .interpretation p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .interpretation .highlight {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 20px; }
+            .controls { flex-wrap: wrap; justify-content: center; }
+            .ladder-row {
+                grid-template-columns: 70px 1fr 60px;
+                font-size: 11px;
+            }
+            .zone-tag { display: none; }
+        }
+
+        /* Scrollbar styling */
+        .price-ladder::-webkit-scrollbar {
+            width: 8px;
+        }
+        .price-ladder::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+        .price-ladder::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        .price-ladder::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🧲</div>
+                <div class="logo-text">
+                    <h1>MP/LP Zones</h1>
+                    <p>Magnet Price & Liquidity Pull Analysis</p>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="input-group">
+                    <label>Symbol</label>
+                    <input type="text" id="symbolInput" placeholder="SPY" value="SPY" style="width: 100px;">
+                </div>
+                <div class="input-group">
+                    <label>Expiration</label>
+                    <select id="expirationSelect" style="width: 140px;">
+                        <option value="">Select symbol first</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Strike Range</label>
+                    <select id="rangeSelect" style="width: 100px;">
+                        <option value="10">±10 strikes</option>
+                        <option value="20" selected>±20 strikes</option>
+                        <option value="30">±30 strikes</option>
+                        <option value="50">±50 strikes</option>
+                    </select>
+                </div>
+                <button class="btn-analyze" id="analyzeBtn" onclick="analyzeSymbol()">
+                    Analyze
+                </button>
+            </div>
+            <div class="status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Ready</span>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📊</span>
+                        Options Strike Ladder
+                    </div>
+                    <div id="currentPriceDisplay" style="font-family: 'JetBrains Mono', monospace; color: var(--accent-green);">
+                        --
+                    </div>
+                </div>
+                <div class="price-ladder" id="priceLadder">
+                    <div class="empty-state">
+                        <div class="icon">🎯</div>
+                        <p>Enter a symbol and click Analyze to view MP/LP zones</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>🎯</span>
+                            Key Levels
+                        </div>
+                    </div>
+                    <div class="key-levels" id="keyLevels">
+                        <div class="level-item primary-mp">
+                            <div>
+                                <div class="level-label">Primary Magnet Price</div>
+                                <div class="level-value cyan" id="primaryMP">--</div>
+                            </div>
+                            <div class="level-meta" id="primaryMPMeta">Awaiting data</div>
+                        </div>
+                        <div class="level-item primary-lp">
+                            <div>
+                                <div class="level-label">Primary Liquidity Pull</div>
+                                <div class="level-value magenta" id="primaryLP">--</div>
+                            </div>
+                            <div class="level-meta" id="primaryLPMeta">Awaiting data</div>
+                        </div>
+                        <div class="level-item">
+                            <div>
+                                <div class="level-label">Call Wall (Resistance)</div>
+                                <div class="level-value green" id="callWall">--</div>
+                            </div>
+                            <div class="level-meta" id="callWallOI">--</div>
+                        </div>
+                        <div class="level-item">
+                            <div>
+                                <div class="level-label">Put Wall (Support)</div>
+                                <div class="level-value red" id="putWall">--</div>
+                            </div>
+                            <div class="level-meta" id="putWallOI">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>📈</span>
+                            Market Metrics
+                        </div>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Net GEX</div>
+                            <div class="metric-value" id="netGEX">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Put/Call OI</div>
+                            <div class="metric-value" id="pcRatio">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Call OI</div>
+                            <div class="metric-value" id="totalCallOI">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Total Put OI</div>
+                            <div class="metric-value" id="totalPutOI">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>💡</span>
+                            Analysis
+                        </div>
+                    </div>
+                    <div class="interpretation">
+                        <h4>🧠 Market Structure Interpretation</h4>
+                        <p id="interpretationText">
+                            Analyze a symbol to see the market structure interpretation based on gamma exposure and open interest distribution.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPrice = 0;
+        let optionsData = [];
+
+        // Use our API proxy instead of direct Polygon calls
+        async function fetchPolygon(endpoint, params = {}) {
+            const queryParams = new URLSearchParams({ endpoint, ...params });
+            const response = await fetch(`/api/polygon?${queryParams.toString()}`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'API request failed');
+            }
+            return response.json();
+        }
+
+        function setStatus(text, state = 'ready') {
+            document.getElementById('statusText').textContent = text;
+            const dot = document.getElementById('statusDot');
+            dot.className = 'status-dot';
+            if (state === 'loading') dot.classList.add('loading');
+            if (state === 'error') dot.classList.add('error');
+        }
+
+        async function loadExpirations() {
+            const symbol = document.getElementById('symbolInput').value.toUpperCase() || 'SPY';
+            setStatus('Loading expirations...', 'loading');
+            
+            try {
+                const data = await fetchPolygon(
+                    `/v3/reference/options/contracts`,
+                    { underlying_ticker: symbol, limit: 1000 }
+                );
+                
+                if (data.results) {
+                    const expirations = [...new Set(data.results.map(c => c.expiration_date))].sort();
+                    const select = document.getElementById('expirationSelect');
+                    select.innerHTML = expirations.slice(0, 12).map(exp => 
+                        `<option value="${exp}">${exp}</option>`
+                    ).join('');
+                    setStatus('Ready');
+                } else {
+                    setStatus('No options found', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading expirations:', error);
+                setStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function analyzeSymbol() {
+            const symbol = document.getElementById('symbolInput').value.toUpperCase();
+            const expiration = document.getElementById('expirationSelect').value;
+            const range = parseInt(document.getElementById('rangeSelect').value);
+            
+            if (!symbol || !expiration) {
+                alert('Please enter a symbol and select an expiration');
+                return;
+            }
+
+            setStatus('Fetching price...', 'loading');
+            document.getElementById('analyzeBtn').disabled = true;
+
+            try {
+                // Get current price
+                const priceData = await fetchPolygon(`/v2/aggs/ticker/${symbol}/prev`);
+                currentPrice = priceData.results?.[0]?.c || 0;
+                document.getElementById('currentPriceDisplay').textContent = `$${currentPrice.toFixed(2)}`;
+
+                setStatus('Fetching options chain...', 'loading');
+
+                // Get options chain
+                const optionsResponseData = await fetchPolygon(
+                    `/v3/snapshot/options/${symbol}`,
+                    { expiration_date: expiration, limit: 250 }
+                );
+                
+                if (optionsResponseData.results) {
+                    optionsData = optionsResponseData.results;
+                    processOptionsData(range);
+                    setStatus('Analysis complete');
+                } else {
+                    setStatus('No options data found', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                setStatus('Error: ' + error.message, 'error');
+            }
+
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+
+        function processOptionsData(range) {
+            const strikes = {};
+            let totalCallOI = 0;
+            let totalPutOI = 0;
+            let totalCallGamma = 0;
+            let totalPutGamma = 0;
+
+            optionsData.forEach(opt => {
+                const details = opt.details;
+                const greeks = opt.greeks || {};
+                const strike = details.strike_price;
+                const type = details.contract_type;
+                const oi = opt.open_interest || 0;
+                const gamma = greeks.gamma || 0;
+
+                if (!strikes[strike]) {
+                    strikes[strike] = { callOI: 0, putOI: 0, callGamma: 0, putGamma: 0, netGamma: 0 };
+                }
+
+                if (type === 'call') {
+                    strikes[strike].callOI = oi;
+                    strikes[strike].callGamma = gamma * oi * 100;
+                    totalCallOI += oi;
+                    totalCallGamma += gamma * oi * 100;
+                } else {
+                    strikes[strike].putOI = oi;
+                    strikes[strike].putGamma = gamma * oi * 100;
+                    totalPutOI += oi;
+                    totalPutGamma += gamma * oi * 100;
+                }
+            });
+
+            Object.keys(strikes).forEach(strike => {
+                strikes[strike].netGamma = strikes[strike].callGamma - strikes[strike].putGamma;
+            });
+
+            const allStrikes = Object.keys(strikes).map(Number).sort((a, b) => a - b);
+            const currentIdx = allStrikes.findIndex(s => s >= currentPrice);
+            const startIdx = Math.max(0, currentIdx - range);
+            const endIdx = Math.min(allStrikes.length, currentIdx + range);
+            const filteredStrikes = allStrikes.slice(startIdx, endIdx);
+
+            let maxCallOI = 0, maxPutOI = 0, callWall = 0, putWall = 0;
+            let maxGamma = 0, magnetPrice = 0;
+            let maxLiquidity = 0, liquidityPull = 0;
+
+            filteredStrikes.forEach(strike => {
+                const data = strikes[strike];
+                
+                if (strike >= currentPrice && data.callOI > maxCallOI) {
+                    maxCallOI = data.callOI;
+                    callWall = strike;
+                }
+                
+                if (strike <= currentPrice && data.putOI > maxPutOI) {
+                    maxPutOI = data.putOI;
+                    putWall = strike;
+                }
+
+                if (Math.abs(data.netGamma) > maxGamma) {
+                    maxGamma = Math.abs(data.netGamma);
+                    magnetPrice = strike;
+                }
+
+                const totalOI = data.callOI + data.putOI;
+                if (totalOI > maxLiquidity) {
+                    maxLiquidity = totalOI;
+                    liquidityPull = strike;
+                }
+            });
+
+            renderPriceLadder(filteredStrikes, strikes, magnetPrice, liquidityPull, maxCallOI, maxPutOI);
+
+            document.getElementById('primaryMP').textContent = `$${magnetPrice.toFixed(0)}`;
+            document.getElementById('primaryMPMeta').textContent = `Net γ: ${formatNumber(strikes[magnetPrice]?.netGamma || 0)}`;
+            
+            document.getElementById('primaryLP').textContent = `$${liquidityPull.toFixed(0)}`;
+            document.getElementById('primaryLPMeta').textContent = `Combined OI: ${formatNumber(maxLiquidity)}`;
+            
+            document.getElementById('callWall').textContent = `$${callWall.toFixed(0)}`;
+            document.getElementById('callWallOI').textContent = `OI: ${formatNumber(maxCallOI)}`;
+            
+            document.getElementById('putWall').textContent = `$${putWall.toFixed(0)}`;
+            document.getElementById('putWallOI').textContent = `OI: ${formatNumber(maxPutOI)}`;
+
+            const netGEX = totalCallGamma - totalPutGamma;
+            document.getElementById('netGEX').textContent = formatNumber(netGEX);
+            document.getElementById('netGEX').style.color = netGEX > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            
+            document.getElementById('pcRatio').textContent = (totalPutOI / totalCallOI).toFixed(2);
+            document.getElementById('totalCallOI').textContent = formatNumber(totalCallOI);
+            document.getElementById('totalPutOI').textContent = formatNumber(totalPutOI);
+
+            generateInterpretation(magnetPrice, liquidityPull, callWall, putWall, netGEX, totalPutOI / totalCallOI);
+        }
+
+        function renderPriceLadder(strikes, data, mp, lp, maxCallOI, maxPutOI) {
+            const ladder = document.getElementById('priceLadder');
+            const maxOI = Math.max(maxCallOI, maxPutOI);
+            
+            let html = `
+                <div class="ladder-row" style="background: var(--bg-tertiary); font-weight: 600; position: sticky; top: 0; z-index: 1;">
+                    <div>Strike</div>
+                    <div style="text-align: center;">Open Interest (Calls | Puts)</div>
+                    <div style="text-align: right;">Net γ</div>
+                    <div style="text-align: center;">Zone</div>
+                </div>
+            `;
+
+            [...strikes].reverse().forEach(strike => {
+                const d = data[strike];
+                const callWidth = maxOI > 0 ? (d.callOI / maxOI) * 100 : 0;
+                const putWidth = maxOI > 0 ? (d.putOI / maxOI) * 100 : 0;
+                
+                let rowClass = '';
+                let zoneTag = '';
+                
+                if (strike === mp) {
+                    rowClass = 'magnet-zone';
+                    zoneTag = '<span class="zone-tag mp">MP</span>';
+                } else if (strike === lp && strike !== mp) {
+                    rowClass = 'liquidity-zone';
+                    zoneTag = '<span class="zone-tag lp">LP</span>';
+                }
+                
+                if (Math.abs(strike - currentPrice) < 1) {
+                    rowClass = 'current-price';
+                }
+
+                const gammaClass = d.netGamma >= 0 ? 'positive' : 'negative';
+
+                html += `
+                    <div class="ladder-row ${rowClass}">
+                        <div class="strike-price">$${strike.toFixed(0)}</div>
+                        <div class="oi-bar-container">
+                            <div class="oi-bar calls" style="width: ${callWidth}%;">${d.callOI > 1000 ? formatNumber(d.callOI) : ''}</div>
+                            <div class="oi-bar puts" style="width: ${putWidth}%;">${d.putOI > 1000 ? formatNumber(d.putOI) : ''}</div>
+                        </div>
+                        <div class="gamma-value ${gammaClass}">${formatNumber(d.netGamma)}</div>
+                        <div style="text-align: center;">${zoneTag}</div>
+                    </div>
+                `;
+            });
+
+            ladder.innerHTML = html;
+        }
+
+        function generateInterpretation(mp, lp, callWall, putWall, netGEX, pcRatio) {
+            let text = '';
+            
+            if (mp > currentPrice) {
+                text += `<span class="highlight">Magnet Price at $${mp}</span> is above current price - price may be drawn upward toward this level. `;
+            } else if (mp < currentPrice) {
+                text += `<span class="highlight">Magnet Price at $${mp}</span> is below current price - price may be pulled down toward this level. `;
+            } else {
+                text += `Price is at the <span class="highlight">Magnet Price ($${mp})</span> - expect potential pinning or consolidation. `;
+            }
+
+            if (netGEX > 0) {
+                text += `Positive net gamma (${formatNumber(netGEX)}) suggests dealer hedging will dampen volatility - expect mean reversion and range-bound action. `;
+            } else {
+                text += `Negative net gamma (${formatNumber(netGEX)}) suggests dealer hedging will amplify moves - watch for trending/volatile conditions. `;
+            }
+
+            text += `Key resistance at <span class="highlight">$${callWall}</span> (call wall) and support at <span class="highlight">$${putWall}</span> (put wall). `;
+
+            if (pcRatio > 1.2) {
+                text += `Elevated put/call ratio (${pcRatio.toFixed(2)}) indicates bearish positioning or hedging activity.`;
+            } else if (pcRatio < 0.8) {
+                text += `Low put/call ratio (${pcRatio.toFixed(2)}) indicates bullish positioning.`;
+            } else {
+                text += `Balanced put/call ratio (${pcRatio.toFixed(2)}) suggests neutral market positioning.`;
+            }
+
+            document.getElementById('interpretationText').innerHTML = text;
+        }
+
+        function formatNumber(num) {
+            if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+            if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+            return num.toFixed(0);
+        }
+
+        // Event listeners
+        document.getElementById('symbolInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadExpirations().then(() => analyzeSymbol());
+            }
+        });
+
+        document.getElementById('symbolInput').addEventListener('change', loadExpirations);
+
+        // Load expirations on page load
+        document.addEventListener('DOMContentLoaded', loadExpirations);
+    </script>
+</body>
+</html>
