@@ -558,7 +558,7 @@
             document.getElementById('results').style.display = 'none';
 
             try {
-                const response = await fetch(`/api/uw?symbol=${symbol}`);
+                const response = await fetch(`/api/uw.js?symbol=${symbol}`);
                 const data = await response.json();
 
                 if (!response.ok || data.error) {
