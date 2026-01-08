@@ -1,0 +1,14 @@
+{
+  "name": "mp-lp-zones-uw",
+  "version": "2.0.0",
+  "description": "Magnet Price & Liquidity Pull Zone Analysis - Unusual Whales Edition",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "vercel dev"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}
