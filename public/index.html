@@ -4,719 +4,207 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MP/LP Zones - Magnet Price & Liquidity Pull</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-tertiary: #1a1a25;
-            --bg-card: #15151f;
-            --border-color: #2a2a3a;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
-            --text-muted: #6a6a7a;
-            --accent-green: #00ff88;
-            --accent-red: #ff4466;
-            --accent-blue: #4488ff;
-            --accent-purple: #aa66ff;
-            --accent-yellow: #ffcc00;
-            --accent-cyan: #00ccff;
+            --bg-primary: #0a0a0f; --bg-secondary: #12121a; --bg-card: #15151f;
+            --border-color: #2a2a3a; --text-primary: #ffffff; --text-secondary: #a0a0b0; --text-muted: #6a6a7a;
+            --accent-green: #00ff88; --accent-red: #ff4466; --accent-blue: #4488ff;
+            --accent-purple: #aa66ff; --accent-yellow: #ffcc00; --accent-cyan: #00ccff;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .title {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-top: 4px;
-        }
-
-        .powered-by {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .controls {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .control-group label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input, select {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus, select:focus {
-            border-color: var(--accent-blue);
-        }
-
-        input[type="text"] {
-            width: 100px;
-            text-transform: uppercase;
-        }
-
-        button {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 10px 24px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(68, 136, 255, 0.4);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1200px) {
-            .grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr; }
-        }
-
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .card-title {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .card-icon {
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .card-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .card-label {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .magnet { border-left: 3px solid var(--accent-purple); }
-        .magnet .card-value { color: var(--accent-purple); }
-        .magnet .card-icon { background: rgba(170, 102, 255, 0.2); color: var(--accent-purple); }
-
-        .liquidity { border-left: 3px solid var(--accent-cyan); }
-        .liquidity .card-value { color: var(--accent-cyan); }
-        .liquidity .card-icon { background: rgba(0, 204, 255, 0.2); color: var(--accent-cyan); }
-
-        .call-wall { border-left: 3px solid var(--accent-green); }
-        .call-wall .card-value { color: var(--accent-green); }
-        .call-wall .card-icon { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
-
-        .put-wall { border-left: 3px solid var(--accent-red); }
-        .put-wall .card-value { color: var(--accent-red); }
-        .put-wall .card-icon { background: rgba(255, 68, 102, 0.2); color: var(--accent-red); }
-
-        .interpretation {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-
-        .interpretation-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .interpretation-text {
-            font-size: 15px;
-            line-height: 1.6;
-            color: var(--text-primary);
-        }
-
-        .gex-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 12px;
-        }
-
-        .gex-positive {
-            background: rgba(0, 255, 136, 0.15);
-            color: var(--accent-green);
-        }
-
-        .gex-negative {
-            background: rgba(255, 68, 102, 0.15);
-            color: var(--accent-red);
-        }
-
-        .strike-ladder {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .strike-ladder-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .strike-ladder-title {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .strike-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .strike-table th {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 12px 16px;
-            text-align: right;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .strike-table th:first-child,
-        .strike-table td:first-child {
-            text-align: left;
-        }
-
-        .strike-table td {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            padding: 10px 16px;
-            text-align: right;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .strike-table tr:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .strike-table tr.current-price {
-            background: rgba(68, 136, 255, 0.1);
-        }
-
-        .strike-table tr.magnet-zone {
-            background: rgba(170, 102, 255, 0.15);
-        }
-
-        .strike-table tr.liquidity-zone {
-            background: rgba(0, 204, 255, 0.15);
-        }
-
-        .strike-table tr.call-wall-zone {
-            background: rgba(0, 255, 136, 0.1);
-        }
-
-        .strike-table tr.put-wall-zone {
-            background: rgba(255, 68, 102, 0.1);
-        }
-
-        .badge {
-            font-size: 9px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 6px;
-            text-transform: uppercase;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+        .title { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+        .controls { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; align-items: flex-end; }
+        .control-group { display: flex; flex-direction: column; gap: 6px; }
+        .control-group label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; }
+        input, select { font-family: monospace; font-size: 14px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); outline: none; }
+        input:focus, select:focus { border-color: var(--accent-blue); }
+        input[type="text"] { width: 100px; text-transform: uppercase; }
+        button { font-size: 14px; font-weight: 600; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: white; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(68, 136, 255, 0.4); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 1200px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .card-title { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; }
+        .card-value { font-family: monospace; font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+        .card-label { font-size: 13px; color: var(--text-muted); }
+        .card-sublabel { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .magnet { border-left: 3px solid var(--accent-purple); } .magnet .card-value { color: var(--accent-purple); }
+        .liquidity { border-left: 3px solid var(--accent-cyan); } .liquidity .card-value { color: var(--accent-cyan); }
+        .call-wall { border-left: 3px solid var(--accent-green); } .call-wall .card-value { color: var(--accent-green); }
+        .put-wall { border-left: 3px solid var(--accent-red); } .put-wall .card-value { color: var(--accent-red); }
+        .interpretation { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .interpretation-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .interpretation-text { font-size: 15px; line-height: 1.6; }
+        .gex-indicator { display: inline-flex; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-left: 12px; }
+        .gex-positive { background: rgba(0, 255, 136, 0.15); color: var(--accent-green); }
+        .gex-negative { background: rgba(255, 68, 102, 0.15); color: var(--accent-red); }
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .stat-box { background: var(--bg-secondary); border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-value { font-family: monospace; font-size: 16px; font-weight: 600; }
+        .strike-ladder { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .strike-ladder-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 16px; font-weight: 600; }
+        .strike-table { width: 100%; border-collapse: collapse; }
+        .strike-table th { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; padding: 12px 16px; text-align: right; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+        .strike-table th:first-child, .strike-table td:first-child { text-align: left; }
+        .strike-table td { font-family: monospace; font-size: 13px; padding: 10px 16px; text-align: right; border-bottom: 1px solid var(--border-color); }
+        .strike-table tr:hover { background: rgba(255,255,255,0.03); }
+        .strike-table tr.current-price { background: rgba(68, 136, 255, 0.15); }
+        .strike-table tr.call-wall-zone { background: rgba(0, 255, 136, 0.1); }
+        .strike-table tr.put-wall-zone { background: rgba(255, 68, 102, 0.1); }
+        .badge { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
         .badge-mp { background: var(--accent-purple); color: white; }
         .badge-lp { background: var(--accent-cyan); color: black; }
         .badge-cw { background: var(--accent-green); color: black; }
         .badge-pw { background: var(--accent-red); color: white; }
-        .badge-mp-pain { background: var(--accent-yellow); color: black; }
-
-        .oi-bar {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .oi-bar-fill {
-            height: 6px;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-
-        .oi-bar-call { background: var(--accent-green); }
-        .oi-bar-put { background: var(--accent-red); }
-
-        .gamma-value.positive { color: var(--accent-green); }
-        .gamma-value.negative { color: var(--accent-red); }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 60px;
-            color: var(--text-secondary);
-        }
-
-        .spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 12px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error {
-            background: rgba(255, 68, 102, 0.1);
-            border: 1px solid var(--accent-red);
-            border-radius: 8px;
-            padding: 16px;
-            color: var(--accent-red);
-            margin-bottom: 24px;
-        }
-
-        .info-row {
-            display: flex;
-            gap: 24px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .info-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .price-up { color: var(--accent-green); }
-        .price-down { color: var(--accent-red); }
+        .badge-price { background: var(--accent-blue); color: white; }
+        .badge-max-pain { background: var(--accent-yellow); color: black; }
+        .oi-bar { display: flex; gap: 2px; } .oi-bar div { height: 8px; border-radius: 4px; }
+        .oi-call { background: var(--accent-green); } .oi-put { background: var(--accent-red); }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--text-secondary); }
+        .spinner { width: 24px; height: 24px; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; margin-right: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error { background: rgba(255, 68, 102, 0.1); border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px; color: var(--accent-red); margin-bottom: 24px; }
+        .info-row { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+        .info-item { display: flex; align-items: center; gap: 8px; }
+        .info-label { font-size: 12px; color: var(--text-secondary); }
+        .info-value { font-family: monospace; font-size: 14px; font-weight: 600; }
+        .price-up { color: var(--accent-green); } .price-down { color: var(--accent-red); }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <div>
-                <div class="title">MP/LP Zones</div>
-                <div class="subtitle">Magnet Price & Liquidity Pull Analysis</div>
-            </div>
-            <div class="powered-by">Powered by Unusual Whales API</div>
-        </div>
-
+        <div class="header"><div><div class="title">MP/LP Zones</div><div class="subtitle">Magnet Price & Liquidity Pull Analysis</div></div><div style="font-size:12px;color:#6a6a7a;">Powered by Unusual Whales</div></div>
         <div class="controls">
-            <div class="control-group">
-                <label>Symbol</label>
-                <input type="text" id="symbol" value="SPY" placeholder="SPY">
-            </div>
-            <div class="control-group">
-                <label>Strike Range</label>
-                <select id="strikeRange">
-                    <option value="10">±10 Strikes</option>
-                    <option value="20" selected>±20 Strikes</option>
-                    <option value="30">±30 Strikes</option>
-                    <option value="50">±50 Strikes</option>
-                </select>
-            </div>
-            <button class="btn-primary" id="analyzeBtn" onclick="analyze()">
-                Analyze
-            </button>
+            <div class="control-group"><label>Symbol</label><input type="text" id="symbol" value="SPY"></div>
+            <div class="control-group"><label>Expiration</label><select id="expiry"><option value="">Loading...</option></select></div>
+            <button id="analyzeBtn" onclick="analyze()">Analyze</button>
         </div>
-
-        <div id="error" class="error" style="display: none;"></div>
-
-        <div id="loading" class="loading" style="display: none;">
-            <div class="spinner"></div>
-            <span>Fetching options data...</span>
-        </div>
-
-        <div id="results" style="display: none;">
+        <div id="error" class="error" style="display:none;"></div>
+        <div id="loading" class="loading" style="display:none;"><div class="spinner"></div><span>Fetching data...</span></div>
+        <div id="results" style="display:none;">
             <div class="info-row">
-                <div class="info-item">
-                    <span class="info-label">Current Price:</span>
-                    <span class="info-value" id="currentPrice">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Max Pain:</span>
-                    <span class="info-value" id="maxPain">-</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Net GEX:</span>
-                    <span class="info-value" id="netGEX">-</span>
-                </div>
+                <div class="info-item"><span class="info-label">Price:</span><span class="info-value" id="currentPrice">-</span></div>
+                <div class="info-item"><span class="info-label">Max Pain:</span><span class="info-value" id="maxPain">-</span></div>
+                <div class="info-item"><span class="info-label">Expiry:</span><span class="info-value" id="selectedExpiry">-</span></div>
             </div>
-
+            <div class="stats-row">
+                <div class="stat-box"><div class="stat-label">Total Call OI</div><div class="stat-value price-up" id="totalCallOI">-</div></div>
+                <div class="stat-box"><div class="stat-label">Total Put OI</div><div class="stat-value price-down" id="totalPutOI">-</div></div>
+                <div class="stat-box"><div class="stat-label">P/C Ratio</div><div class="stat-value" id="pcRatio">-</div></div>
+                <div class="stat-box"><div class="stat-label">Net Bias</div><div class="stat-value" id="netGEX">-</div></div>
+            </div>
             <div class="grid">
-                <div class="card magnet">
-                    <div class="card-header">
-                        <span class="card-title">Magnet Price (MP)</span>
-                        <div class="card-icon">🧲</div>
-                    </div>
-                    <div class="card-value" id="mpValue">-</div>
-                    <div class="card-label">Highest net gamma - price gravitates here</div>
-                </div>
-                <div class="card liquidity">
-                    <div class="card-header">
-                        <span class="card-title">Liquidity Pull (LP)</span>
-                        <div class="card-icon">💧</div>
-                    </div>
-                    <div class="card-value" id="lpValue">-</div>
-                    <div class="card-label">Highest combined OI - major liquidity</div>
-                </div>
-                <div class="card call-wall">
-                    <div class="card-header">
-                        <span class="card-title">Call Wall</span>
-                        <div class="card-icon">🟢</div>
-                    </div>
-                    <div class="card-value" id="cwValue">-</div>
-                    <div class="card-label">Resistance - dealers sell into rallies</div>
-                </div>
-                <div class="card put-wall">
-                    <div class="card-header">
-                        <span class="card-title">Put Wall</span>
-                        <div class="card-icon">🔴</div>
-                    </div>
-                    <div class="card-value" id="pwValue">-</div>
-                    <div class="card-label">Support - dealers buy the dip</div>
-                </div>
+                <div class="card magnet"><div class="card-header"><span class="card-title">Magnet Price (MP)</span><span>🧲</span></div><div class="card-value" id="mpValue">-</div><div class="card-label">Highest OI imbalance</div><div class="card-sublabel" id="mpOI"></div></div>
+                <div class="card liquidity"><div class="card-header"><span class="card-title">Liquidity Pull (LP)</span><span>💧</span></div><div class="card-value" id="lpValue">-</div><div class="card-label">Highest combined OI</div><div class="card-sublabel" id="lpOI"></div></div>
+                <div class="card call-wall"><div class="card-header"><span class="card-title">Call Wall</span><span>🟢</span></div><div class="card-value" id="cwValue">-</div><div class="card-label">Resistance above price</div><div class="card-sublabel" id="cwOI"></div></div>
+                <div class="card put-wall"><div class="card-header"><span class="card-title">Put Wall</span><span>🔴</span></div><div class="card-value" id="pwValue">-</div><div class="card-label">Support below price</div><div class="card-sublabel" id="pwOI"></div></div>
             </div>
-
-            <div class="interpretation">
-                <div class="interpretation-title">
-                    📊 Market Analysis
-                    <span class="gex-indicator" id="gexIndicator"></span>
-                </div>
-                <div class="interpretation-text" id="interpretationText"></div>
-            </div>
-
-            <div class="strike-ladder">
-                <div class="strike-ladder-header">
-                    <span class="strike-ladder-title">Strike Ladder</span>
-                </div>
-                <table class="strike-table">
-                    <thead>
-                        <tr>
-                            <th>Strike</th>
-                            <th>Call OI</th>
-                            <th>Put OI</th>
-                            <th>Total OI</th>
-                            <th>Net Gamma</th>
-                            <th>OI Distribution</th>
-                        </tr>
-                    </thead>
-                    <tbody id="strikeTableBody">
-                    </tbody>
-                </table>
+            <div class="interpretation"><div class="interpretation-title">📊 Analysis<span class="gex-indicator" id="gexIndicator"></span></div><div class="interpretation-text" id="interpretationText"></div></div>
+            <div class="strike-ladder"><div class="strike-ladder-header">Strike Ladder (±8% from price)</div>
+                <table class="strike-table"><thead><tr><th>Strike</th><th>Call OI</th><th>Put OI</th><th>Total OI</th><th>P/C</th><th>Distribution</th></tr></thead><tbody id="strikeTableBody"></tbody></table>
             </div>
         </div>
     </div>
+<script>
+async function analyze() {
+    const symbol = document.getElementById('symbol').value.toUpperCase().trim();
+    const expiry = document.getElementById('expiry').value;
+    if (!symbol) { showError('Enter a symbol'); return; }
+    showLoading(true); hideError(); document.getElementById('results').style.display = 'none';
+    try {
+        let url = `/api/uw.js?symbol=${symbol}`;
+        if (expiry) url += `&expiry=${expiry}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || 'Failed');
+        if (data.expirations?.length > 0) populateExpiry(data.expirations, data.selectedExpiry);
+        displayResults(data);
+        document.getElementById('results').style.display = 'block';
+    } catch (e) { showError(e.message); }
+    finally { showLoading(false); }
+}
 
-    <script>
-        let analysisData = null;
+function populateExpiry(expirations, selected) {
+    const sel = document.getElementById('expiry');
+    const today = new Date();
+    sel.innerHTML = expirations.map(exp => {
+        const d = new Date(exp + 'T00:00:00');
+        const diff = Math.ceil((d - today) / 86400000);
+        let label = exp;
+        if (diff === 0) label += ' (0DTE)';
+        else if (diff === 1) label += ' (1DTE)';
+        else if (diff <= 7) label += ` (${diff}DTE)`;
+        return `<option value="${exp}"${exp === selected ? ' selected' : ''}>${label}</option>`;
+    }).join('');
+}
 
-        async function analyze() {
-            const symbol = document.getElementById('symbol').value.toUpperCase().trim();
-            const strikeRange = parseInt(document.getElementById('strikeRange').value);
-            
-            if (!symbol) {
-                showError('Please enter a symbol');
-                return;
-            }
+function displayResults(data) {
+    document.getElementById('currentPrice').textContent = `$${data.currentPrice?.toFixed(2) || '-'}`;
+    document.getElementById('maxPain').textContent = data.maxPain ? `$${data.maxPain}` : '-';
+    document.getElementById('selectedExpiry').textContent = data.selectedExpiry || '-';
+    const z = data.zones || {};
+    document.getElementById('totalCallOI').textContent = fmt(z.totalCallOI);
+    document.getElementById('totalPutOI').textContent = fmt(z.totalPutOI);
+    document.getElementById('pcRatio').textContent = z.pcRatio || '-';
+    document.getElementById('netGEX').textContent = fmt(z.netGEX);
+    document.getElementById('netGEX').className = `stat-value ${z.netGEX >= 0 ? 'price-up' : 'price-down'}`;
+    document.getElementById('mpValue').textContent = z.magnetPrice ? `$${z.magnetPrice.toFixed(2)}` : '-';
+    document.getElementById('mpOI').textContent = z.magnetPriceOI ? `OI: ${fmt(z.magnetPriceOI)}` : '';
+    document.getElementById('lpValue').textContent = z.liquidityPull ? `$${z.liquidityPull.toFixed(2)}` : '-';
+    document.getElementById('lpOI').textContent = z.liquidityPullOI ? `OI: ${fmt(z.liquidityPullOI)}` : '';
+    document.getElementById('cwValue').textContent = z.callWall ? `$${z.callWall.toFixed(2)}` : '-';
+    document.getElementById('cwOI').textContent = z.callWallOI ? `Call OI: ${fmt(z.callWallOI)}` : '';
+    document.getElementById('pwValue').textContent = z.putWall ? `$${z.putWall.toFixed(2)}` : '-';
+    document.getElementById('pwOI').textContent = z.putWallOI ? `Put OI: ${fmt(z.putWallOI)}` : '';
+    const gex = document.getElementById('gexIndicator');
+    gex.className = `gex-indicator ${z.netGEX >= 0 ? 'gex-positive' : 'gex-negative'}`;
+    gex.textContent = z.netGEX >= 0 ? '📈 Bullish' : '📉 Bearish';
+    document.getElementById('interpretationText').textContent = z.interpretation || '';
+    displayLadder(data);
+}
 
-            showLoading(true);
-            hideError();
-            document.getElementById('results').style.display = 'none';
+function displayLadder(data) {
+    const tbody = document.getElementById('strikeTableBody');
+    tbody.innerHTML = '';
+    const strikes = Object.values(data.strikeData || {}).sort((a, b) => b.strike - a.strike);
+    if (!strikes.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#6a6a7a;">No data for this expiry</td></tr>'; return; }
+    const maxOI = Math.max(...strikes.map(s => Math.max(s.callOI || 0, s.putOI || 0, 1)));
+    const price = data.currentPrice || 0;
+    const z = data.zones || {};
+    strikes.forEach(s => {
+        const row = document.createElement('tr');
+        const near = Math.abs(s.strike - price) < 1;
+        if (near) row.classList.add('current-price');
+        else if (s.strike === z.callWall) row.classList.add('call-wall-zone');
+        else if (s.strike === z.putWall) row.classList.add('put-wall-zone');
+        let badges = '';
+        if (near) badges += '<span class="badge badge-price">PRICE</span>';
+        if (s.strike === z.magnetPrice) badges += '<span class="badge badge-mp">MP</span>';
+        if (s.strike === z.liquidityPull) badges += '<span class="badge badge-lp">LP</span>';
+        if (s.strike === z.callWall) badges += '<span class="badge badge-cw">CW</span>';
+        if (s.strike === z.putWall) badges += '<span class="badge badge-pw">PW</span>';
+        if (data.maxPain && Math.abs(s.strike - data.maxPain) < 1) badges += '<span class="badge badge-max-pain">MAX PAIN</span>';
+        const cw = Math.min((s.callOI || 0) / maxOI * 80, 80);
+        const pw = Math.min((s.putOI || 0) / maxOI * 80, 80);
+        row.innerHTML = `<td>$${s.strike.toFixed(2)}${badges}</td><td style="color:var(--accent-green)">${fmt(s.callOI)}</td><td style="color:var(--accent-red)">${fmt(s.putOI)}</td><td>${fmt(s.totalOI)}</td><td>${s.pcRatio || '-'}</td><td><div class="oi-bar"><div class="oi-call" style="width:${cw}px"></div><div class="oi-put" style="width:${pw}px"></div></div></td>`;
+        tbody.appendChild(row);
+    });
+}
 
-            try {
-                const response = await fetch(`/api/uw.js?symbol=${symbol}`);
-                const data = await response.json();
-
-                if (!response.ok || data.error) {
-                    throw new Error(data.error || data.details || 'Failed to fetch data');
-                }
-
-                analysisData = data;
-                displayResults(data, strikeRange);
-                document.getElementById('results').style.display = 'block';
-
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function displayResults(data, strikeRange) {
-            // Current price
-            document.getElementById('currentPrice').textContent = `$${data.currentPrice?.toFixed(2) || '-'}`;
-
-            // Max Pain
-            document.getElementById('maxPain').textContent = data.maxPain ? `$${data.maxPain.toFixed(2)}` : '-';
-
-            // Net GEX
-            const netGEX = data.zones?.netGEX || 0;
-            const gexFormatted = formatNumber(netGEX);
-            document.getElementById('netGEX').textContent = gexFormatted;
-            document.getElementById('netGEX').className = `info-value ${netGEX >= 0 ? 'price-up' : 'price-down'}`;
-
-            // Zone cards
-            document.getElementById('mpValue').textContent = data.zones?.magnetPrice ? `$${data.zones.magnetPrice.toFixed(2)}` : '-';
-            document.getElementById('lpValue').textContent = data.zones?.liquidityPull ? `$${data.zones.liquidityPull.toFixed(2)}` : '-';
-            document.getElementById('cwValue').textContent = data.zones?.callWall ? `$${data.zones.callWall.toFixed(2)}` : '-';
-            document.getElementById('pwValue').textContent = data.zones?.putWall ? `$${data.zones.putWall.toFixed(2)}` : '-';
-
-            // GEX indicator
-            const gexIndicator = document.getElementById('gexIndicator');
-            if (netGEX >= 0) {
-                gexIndicator.className = 'gex-indicator gex-positive';
-                gexIndicator.textContent = '📈 Positive GEX';
-            } else {
-                gexIndicator.className = 'gex-indicator gex-negative';
-                gexIndicator.textContent = '📉 Negative GEX';
-            }
-
-            // Interpretation
-            document.getElementById('interpretationText').textContent = data.zones?.interpretation || 'Analysis not available';
-
-            // Strike ladder
-            displayStrikeLadder(data, strikeRange);
-        }
-
-        function displayStrikeLadder(data, strikeRange) {
-            const tbody = document.getElementById('strikeTableBody');
-            tbody.innerHTML = '';
-
-            const strikeData = data.strikeData || {};
-            const strikes = Object.values(strikeData).sort((a, b) => b.strike - a.strike);
-
-            if (strikes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No strike data available</td></tr>';
-                return;
-            }
-
-            // Filter to range around current price
-            const currentPrice = data.currentPrice || strikes[Math.floor(strikes.length / 2)].strike;
-            const filteredStrikes = strikes.filter(s => {
-                const diff = Math.abs(s.strike - currentPrice);
-                return diff <= (strikeRange * (currentPrice * 0.01)); // Rough estimate for strike width
-            }).slice(0, strikeRange * 2);
-
-            // Find max OI for bar scaling
-            const maxOI = Math.max(...filteredStrikes.map(s => Math.max(s.callOI || 0, s.putOI || 0, 1)));
-
-            // Zone values for highlighting
-            const mp = data.zones?.magnetPrice;
-            const lp = data.zones?.liquidityPull;
-            const cw = data.zones?.callWall;
-            const pw = data.zones?.putWall;
-            const maxPain = data.maxPain;
-
-            filteredStrikes.forEach(strike => {
-                const row = document.createElement('tr');
-                
-                // Determine row class
-                const classes = [];
-                if (Math.abs(strike.strike - currentPrice) < currentPrice * 0.002) classes.push('current-price');
-                if (strike.strike === mp) classes.push('magnet-zone');
-                if (strike.strike === lp) classes.push('liquidity-zone');
-                if (strike.strike === cw) classes.push('call-wall-zone');
-                if (strike.strike === pw) classes.push('put-wall-zone');
-                row.className = classes.join(' ');
-
-                // Build badges
-                let badges = '';
-                if (strike.strike === mp) badges += '<span class="badge badge-mp">MP</span>';
-                if (strike.strike === lp) badges += '<span class="badge badge-lp">LP</span>';
-                if (strike.strike === cw) badges += '<span class="badge badge-cw">CW</span>';
-                if (strike.strike === pw) badges += '<span class="badge badge-pw">PW</span>';
-                if (maxPain && Math.abs(strike.strike - maxPain) < 0.5) badges += '<span class="badge badge-mp-pain">MP</span>';
-
-                // OI distribution bars
-                const callWidth = ((strike.callOI || 0) / maxOI) * 100;
-                const putWidth = ((strike.putOI || 0) / maxOI) * 100;
-
-                // Net gamma class
-                const gammaClass = (strike.netGamma || 0) >= 0 ? 'positive' : 'negative';
-
-                row.innerHTML = `
-                    <td>$${strike.strike.toFixed(2)}${badges}</td>
-                    <td style="color: var(--accent-green);">${formatNumber(strike.callOI || 0)}</td>
-                    <td style="color: var(--accent-red);">${formatNumber(strike.putOI || 0)}</td>
-                    <td>${formatNumber(strike.totalOI || 0)}</td>
-                    <td class="gamma-value ${gammaClass}">${formatNumber(strike.netGamma || 0)}</td>
-                    <td>
-                        <div class="oi-bar">
-                            <div class="oi-bar-fill oi-bar-call" style="width: ${callWidth}px;"></div>
-                            <div class="oi-bar-fill oi-bar-put" style="width: ${putWidth}px;"></div>
-                        </div>
-                    </td>
-                `;
-
-                tbody.appendChild(row);
-            });
-        }
-
-        function formatNumber(num) {
-            if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-            if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-            if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(1) + 'K';
-            return num.toFixed(0);
-        }
-
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'flex' : 'none';
-            document.getElementById('analyzeBtn').disabled = show;
-        }
-
-        function showError(message) {
-            const errorEl = document.getElementById('error');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('error').style.display = 'none';
-        }
-
-        // Analyze on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            analyze();
-        });
-
-        // Enter key to analyze
-        document.getElementById('symbol').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') analyze();
-        });
-    </script>
+function fmt(n) { if (n == null) return '-'; if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(1)+'M'; if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(1)+'K'; return n.toFixed(0); }
+function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; document.getElementById('analyzeBtn').disabled = s; }
+function showError(m) { document.getElementById('error').textContent = m; document.getElementById('error').style.display = 'block'; }
+function hideError() { document.getElementById('error').style.display = 'none'; }
+document.getElementById('symbol').addEventListener('keypress', e => { if (e.key === 'Enter') analyze(); });
+document.addEventListener('DOMContentLoaded', analyze);
+</script>
 </body>
 </html>
